@@ -27,15 +27,12 @@ module.exports = (str, classes) => {
 			}
 		}
 
-		if (str.startsWith('true', i)) {
+		if (str.startsWith('true', i))
 			return { result: true, index: i + 4 }
-		}
-		else if (str.startsWith('false', i)) {
+		if (str.startsWith('false', i))
 			return { result: false, index: i + 5 }
-		}
-		else if (str.startsWith('null', i)) {
+		if (str.startsWith('null', i))
 			return { result: null, index: i + 4 }
-		}
 
 		throw "Unresolvable structure or value at " + i
 	}
