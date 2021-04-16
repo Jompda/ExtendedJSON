@@ -19,7 +19,7 @@ module.exports = (str, classes) => {
 	function parse(str, i) {
 		i = skipWhitespace(str, i)
 
-		for (const temp of [parseArray, parseObject, parseClass, parseString]) {
+		for (const temp of [parseArray, parseObject, parseClass, parseString, parseNumber]) {
 			try {
 				return temp(str, i)
 			} catch (e) {
@@ -35,30 +35,6 @@ module.exports = (str, classes) => {
 		}
 		else if (str.startsWith('null', i)) {
 			return { result: null, index: i + 4 }
-		}
-
-		else { // parse number
-			let isDecimal = false
-			let cache = ''
-			for (; i < str.length; i++) {
-				if (/[0-9]/.test(str[i])) {
-					cache += str[i]
-					continue
-				}
-				if (str[i] === '.') {
-					isDecimal = true
-					cache += str[i]
-					continue
-				}
-				break
-			}
-
-			if (cache.length > 0) {
-				let result
-				if (isDecimal) result = Number.parseFloat(cache)
-				else result = Number.parseInt(cache)
-				return { result, index: i }
-			}
 		}
 
 		throw "Unresolvable structure or value at " + i
@@ -164,6 +140,35 @@ module.exports = (str, classes) => {
 			cache += str[i]
 		}
 		return { result: cache, index: i }
+	}
+
+	/**
+	 * @param {string} str 
+	 * @param {number} i 
+	 * @returns {{result:string,index:number}}
+	 */
+	function parseNumber(str, i) {
+		let isDecimal = false
+		let cache = ''
+		for (; i < str.length; i++) {
+			if (/[0-9]/.test(str[i])) {
+				cache += str[i]
+				continue
+			}
+			if (str[i] === '.') {
+				isDecimal = true
+				cache += str[i]
+				continue
+			}
+			break
+		}
+
+		if (cache.length <= 0) throw false
+
+		let result
+		if (isDecimal) result = Number.parseFloat(cache)
+		else result = Number.parseInt(cache)
+		return { result, index: i }
 	}
 
 	/**
