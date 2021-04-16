@@ -11,8 +11,14 @@ class Person {
 }
 
 const src = require('fs').readFileSync('./test.json').toString()
-const parse = require('./index.js')
+const { parse, stringify } = require('./index.js')
 
 console.log(src)
 console.log('--- PARSED RESULT ---')
-console.log(parse(src, [Person]))
+const parsed = parse(src, [Person])
+console.log(parsed)
+
+console.log('--- STRINGIFIER RESULT ---')
+console.log(stringify(parsed, [Person]))
+
+console.log('end')
