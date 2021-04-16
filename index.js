@@ -12,9 +12,8 @@ module.exports = (str, classes) => {
 	/**
 	 * @param {string} str 
 	 */
-	function parse(str, startIndex) {
-		let result = undefined
-		let index = skipWhitespace(str, startIndex)
+	function parse(str, index) {
+		index = skipWhitespace(str, index)
 
 		if (str[index] === '[') {
 			const alkiot = []
@@ -33,14 +32,12 @@ module.exports = (str, classes) => {
 				alkiot.push(temp.result)
 				i = temp.index
 			}
-			result = alkiot
-			index = i
+			return { result: alkiot, index: i }
 		}
 
 		else if (str[index] === '{') {
 			const temp = parseObject(str, index)
-			result = temp.result
-			index = temp.index
+			return { result: temp.result, index: temp.index }
 		}
 
 		else if (str[index] === '(') {
@@ -56,27 +53,22 @@ module.exports = (str, classes) => {
 			const clss = findClass(className)
 			if (str[i] !== '{') throw "Illegal character at " + i
 			const temp = parseObject(str, i)
-			result = new clss(temp.result)
-			index = temp.index
+			return { result: new clss(temp.result), index: temp.index }
 		}
 
 		else if (str[index] === '"') {
 			const temp = parseString(str, index)
-			result = temp.result
-			index = temp.index
+			return { result: temp.result, index: temp.index }
 		}
 
 		else if (str.startsWith('true', index)) {
-			result = true
-			index += 4
+			return { result: true, index: index + 4 }
 		}
 		else if (str.startsWith('false', index)) {
-			result = false
-			index += 5
+			return { result: false, index: index + 5 }
 		}
 		else if (str.startsWith('null', index)) {
-			result = null
-			index += 4
+			return { result: null, index: index + 4 }
 		}
 
 		else { // parse number
@@ -97,14 +89,14 @@ module.exports = (str, classes) => {
 			}
 
 			if (cache.length > 0) {
+				let result
 				if (isDecimal) result = Number.parseFloat(cache)
 				else result = Number.parseInt(cache)
-			} else throw "Unresolvable structure or value at " + i
-
-			index = i
+				return { result, index: i }
+			}
 		}
 
-		return { result, index }
+		throw "Unresolvable structure or value at " + index
 	}
 
 	function parseObject(str, startingIndex) {
