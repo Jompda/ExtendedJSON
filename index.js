@@ -7,74 +7,39 @@
 module.exports = (str, classes) => {
 	const findClass = className =>
 		classes.find(temp => temp.name === className)
-	return parse(str, 0).result
+
+	const parsed = parse(str, 0)
+	if (parsed.index < str.length) throw "Parsing failed, leftover characters at the end."
+	return parsed.result
 
 	/**
 	 * @param {string} str 
+	 * @param {number} i
 	 */
-	function parse(str, index) {
-		index = skipWhitespace(str, index)
+	function parse(str, i) {
+		i = skipWhitespace(str, i)
 
-		if (str[index] === '[') {
-			const alkiot = []
-			let i = index + 1
-			while (i < str.length) {
-				i = skipWhitespace(str, i)
-				if (str[i] === ']') {
-					i++
-					break
-				}
-				if (str[i] === ',') {
-					i++
-					continue
-				}
-				const temp = parse(str, i)
-				alkiot.push(temp.result)
-				i = temp.index
+		for (const temp of [parseArray, parseObject, parseClass, parseString]) {
+			try {
+				return temp(str, i)
+			} catch (e) {
+				if (e !== false) throw e
 			}
-			return { result: alkiot, index: i }
 		}
 
-		else if (str[index] === '{') {
-			const temp = parseObject(str, index)
-			return { result: temp.result, index: temp.index }
+		if (str.startsWith('true', i)) {
+			return { result: true, index: i + 4 }
 		}
-
-		else if (str[index] === '(') {
-			let className = ''
-			let i = index + 1
-			for (; i < str.length; i++) {
-				if (str[i] === ')') {
-					i++
-					break
-				}
-				className += str[i]
-			}
-			const clss = findClass(className)
-			if (str[i] !== '{') throw "Illegal character at " + i
-			const temp = parseObject(str, i)
-			return { result: new clss(temp.result), index: temp.index }
+		else if (str.startsWith('false', i)) {
+			return { result: false, index: i + 5 }
 		}
-
-		else if (str[index] === '"') {
-			const temp = parseString(str, index)
-			return { result: temp.result, index: temp.index }
-		}
-
-		else if (str.startsWith('true', index)) {
-			return { result: true, index: index + 4 }
-		}
-		else if (str.startsWith('false', index)) {
-			return { result: false, index: index + 5 }
-		}
-		else if (str.startsWith('null', index)) {
-			return { result: null, index: index + 4 }
+		else if (str.startsWith('null', i)) {
+			return { result: null, index: i + 4 }
 		}
 
 		else { // parse number
 			let isDecimal = false
 			let cache = ''
-			let i = index
 			for (; i < str.length; i++) {
 				if (/[0-9]/.test(str[i])) {
 					cache += str[i]
@@ -96,12 +61,44 @@ module.exports = (str, classes) => {
 			}
 		}
 
-		throw "Unresolvable structure or value at " + index
+		throw "Unresolvable structure or value at " + i
 	}
 
-	function parseObject(str, startingIndex) {
+	/**
+	 * @param {string} str 
+	 * @param {number} i 
+	 * @returns {{result:string,index:number}}
+	 */
+	function parseArray(str, i) {
+		if (str[i] !== '[') throw false
+		const alkiot = []
+		i++
+		while (i < str.length) {
+			i = skipWhitespace(str, i)
+			if (str[i] === ']') {
+				i++
+				break
+			}
+			if (str[i] === ',') {
+				i++
+				continue
+			}
+			const temp = parse(str, i)
+			alkiot.push(temp.result)
+			i = temp.index
+		}
+		return { result: alkiot, index: i }
+	}
+
+	/**
+	 * @param {string} str 
+	 * @param {number} i 
+	 * @returns {{result:string,index:number}}
+	 */
+	function parseObject(str, i) {
+		if (str[i] !== '{') throw false
 		const obj = {}
-		let i = startingIndex + 1
+		i++
 		while (i < str.length) {
 			i = skipWhitespace(str, i);
 			if (str[i] === '}') {
@@ -113,7 +110,6 @@ module.exports = (str, classes) => {
 				continue
 			}
 
-			if (str[i] !== '"') throw "Illegal character at " + i
 			const temp1 = parseString(str, i)
 			i = skipWhitespace(str, temp1.index);
 			if (str[i] !== ':') throw "Illegal character at " + i
@@ -124,9 +120,36 @@ module.exports = (str, classes) => {
 		return { result: obj, index: i }
 	}
 
-	function parseString(str, startingIndex) {
+	/**
+	 * @param {string} str 
+	 * @param {number} i 
+	 * @returns {{result:string,index:number}}
+	 */
+	function parseClass(str, i) {
+		if (str[i] !== '(') throw false
+		let className = ''
+		i++
+		for (; i < str.length; i++) {
+			if (str[i] === ')') {
+				i++
+				break
+			}
+			className += str[i]
+		}
+		const clss = findClass(className)
+		const temp = parseObject(str, i)
+		return { result: new clss(temp.result), index: temp.index }
+	}
+
+	/**
+	 * @param {string} str 
+	 * @param {number} i 
+	 * @returns {{result:string,index:number}}
+	 */
+	function parseString(str, i) {
+		if (str[i] !== '"') throw false
 		let cache = ''
-		let i = startingIndex + 1
+		i++
 		for (; i < str.length; i++) {
 			if (str[i] === '"') {
 				if (str[i - 1] !== '\\') {
@@ -144,10 +167,14 @@ module.exports = (str, classes) => {
 		return { result: cache, index: i }
 	}
 
-	function skipWhitespace(str, startIndex) {
-		for (let i = startIndex; i < str.length; i++) {
+	/**
+	 * @param {string} str 
+	 * @param {number} i 
+	 * @returns {number}
+	 */
+	function skipWhitespace(str, i) {
+		for (; i < str.length; i++)
 			if (!/\s/.test(str[i])) return i
-		}
 		return str.length
 	}
 }
