@@ -19,6 +19,7 @@ const parsed = parse(src, [Person])
 console.log(parsed)
 
 console.log('--- STRINGIFIER RESULT ---')
-console.log(stringify(parsed, [Person]))
-
+const temp = [{ a: undefined, b: 'yup', c: () => 'result' }, true, false, null, 4, 5.6, undefined, parsed]
+console.log(temp)
+console.log(stringify(temp, [Person]))
 console.log('end')
