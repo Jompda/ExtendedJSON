@@ -5,8 +5,8 @@
  * @returns {*}
  */
 module.exports = (str, classes) => {
-	const findClass = className =>
-		classes.find(temp => temp.name === className)
+	const classMap = new Map()
+	classes.forEach(temp => classMap.set(temp.name, temp))
 
 	const parsed = parse(str, 0)
 	if (parsed.index < str.length) throw "Parsing failed, leftover characters at the end."
@@ -128,15 +128,15 @@ module.exports = (str, classes) => {
 	function parseClass(str, i) {
 		if (str[i] !== '(') throw false
 		let className = ''
-		i++
-		for (; i < str.length; i++) {
+		for (i++; i < str.length; i++) {
 			if (str[i] === ')') {
 				i++
 				break
 			}
 			className += str[i]
 		}
-		const clss = findClass(className)
+		const clss = classMap.get(className)
+		i = skipWhitespace(str, i)
 		const temp = parseObject(str, i)
 		return { result: new clss(temp.result), index: temp.index }
 	}
@@ -149,8 +149,7 @@ module.exports = (str, classes) => {
 	function parseString(str, i) {
 		if (str[i] !== '"') throw false
 		let cache = ''
-		i++
-		for (; i < str.length; i++) {
+		for (i++; i < str.length; i++) {
 			if (str[i] === '"') {
 				if (str[i - 1] !== '\\') {
 					i++
